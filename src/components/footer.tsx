@@ -52,7 +52,7 @@ export function Footer() {
               Legal
             </h4>
             <p className="mt-3 text-xs leading-relaxed text-text-dim">
-              This site is not affiliated with or endorsed by Brave Software,
+              This site is not endorsed by Brave Software,
               Inc. All photographs are the property of their respective
               photographers and are used according to their individual licenses.
             </p>
