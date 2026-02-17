@@ -15,12 +15,11 @@ export default function PrivacyPage() {
       <div className="mt-8 space-y-8 text-text-secondary">
         <div>
           <h2 className="font-heading text-xl font-semibold text-text-primary">
-            No Affiliation
+            Unofficial
           </h2>
           <p className="mt-3 leading-relaxed">
-            Beautiful Backgrounds is an independent, unofficial project. It is
-            not affiliated with, endorsed by, or in any way officially connected
-            to Brave Software, Inc. or the Brave Browser. The name
+            Beautiful Backgrounds is an unofficial project. It is
+            not endorsed by Brave Software, Inc. or the Brave Browser. The name
             &ldquo;Brave&rdquo; and any related trademarks are the property of
             Brave Software, Inc.
           </p>
@@ -55,8 +54,7 @@ export default function PrivacyPage() {
             >
               Vercel&apos;s Privacy Policy
             </a>{' '}
-            for details. All fonts are self-hosted — no requests are made to
-            Google or other third-party font services.
+            for details.
           </p>
         </div>
 
@@ -68,7 +66,7 @@ export default function PrivacyPage() {
             The photographs displayed on this site were originally sourced from
             Brave Browser&apos;s New Tab Page component. All images are the
             property of their respective photographers and are used under their
-            individual licenses (primarily the Unsplash License). If you are a
+            individual licenses. If you are a
             photographer and would like your work removed, please open an issue
             on our GitHub repository.
           </p>
@@ -86,9 +84,7 @@ export default function PrivacyPage() {
 
         <div className="rounded-xl border border-border-subtle bg-bg-card p-6">
           <p className="text-sm leading-relaxed text-text-dim">
-            <strong className="text-text-primary">In short:</strong> We
-            don&apos;t track you, we don&apos;t collect your data, and we
-            aren&apos;t affiliated with Brave. This is a simple gallery site
+            <strong className="text-text-primary">In short:</strong> This is a simple gallery site
             that respects your privacy.
           </p>
         </div>

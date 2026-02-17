@@ -24,8 +24,7 @@ export default function AboutPage() {
           </h2>
           <p className="mt-3 leading-relaxed">
             Every time you open a new tab in Brave Browser, you&apos;re greeted
-            with a stunning landscape or nature photograph. These aren&apos;t
-            ads — they&apos;re curated images delivered through the
+            with a stunning landscape or nature photograph. These are curated images delivered through the
             browser&apos;s background images component, rotating regularly with
             fresh photography from talented photographers around the world.
           </p>
@@ -73,11 +72,11 @@ export default function AboutPage() {
 
         <div className="rounded-xl border border-border-subtle bg-bg-card p-6">
           <h2 className="font-heading text-lg font-semibold text-text-primary">
-            Not Affiliated with Brave
+            Unofficial Project
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-text-dim">
-            This site is an independent, unofficial project. It is not
-            affiliated with, endorsed by, or in any way officially connected to
+            This site is an unofficial project. It is not
+          endorsed by, or in any way officially connected to
             Brave Software, Inc. The name &ldquo;Brave&rdquo; and any related
             trademarks are the property of Brave Software, Inc. All photographs
             are the property of their respective photographers and are used
