@@ -20,8 +20,8 @@ const config: Config = {
         'text-dim': '#6B6478',
       },
       fontFamily: {
-        heading: ['"Playfair Display"', 'Georgia', 'serif'],
-        body: ['"DM Sans"', 'system-ui', 'sans-serif'],
+        heading: ['var(--font-heading)', 'Georgia', 'serif'],
+        body: ['var(--font-body)', 'system-ui', 'sans-serif'],
       },
       aspectRatio: {
         '16/10': '16 / 10',

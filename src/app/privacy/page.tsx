@@ -55,8 +55,8 @@ export default function PrivacyPage() {
             >
               Vercel&apos;s Privacy Policy
             </a>{' '}
-            for details. Google Fonts are loaded for typography, which may
-            result in requests to Google&apos;s servers.
+            for details. All fonts are self-hosted — no requests are made to
+            Google or other third-party font services.
           </p>
         </div>
 
