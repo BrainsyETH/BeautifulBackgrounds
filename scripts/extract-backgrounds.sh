@@ -3,7 +3,7 @@
 # Extract NTP Background Images from a local Brave Browser installation.
 #
 # This script:
-# 1. Finds the NTP Background Images component directory
+# 1. Finds the NTP Background Images component directory (latest version)
 # 2. Parses photo.json for metadata
 # 3. Copies images to public/backgrounds/
 # 4. Merges new entries into data/backgrounds.json
@@ -35,17 +35,22 @@ echo "=== Brave NTP Background Extractor ==="
 echo "Repo root: $REPO_ROOT"
 echo "Looking for Brave data in: $BRAVE_USER_DATA"
 
-# --- Find the component directory ---
+# --- Find the component directory (use latest version) ---
 COMPONENT_DIR=""
 PHOTO_JSON=""
 
-# Search for photo.json in the Brave components directory
-# The NTP Background Images component stores images alongside photo.json
+# Collect all photo.json files, then pick the one with the highest version path
+LATEST_VERSION=""
 while IFS= read -r -d '' file; do
-  PHOTO_JSON="$file"
-  COMPONENT_DIR="$(dirname "$file")"
-  echo "Found component at: $COMPONENT_DIR"
-  break
+  dir="$(dirname "$file")"
+  version="$(basename "$dir")"
+  echo "  Found component version: $version at $dir"
+  # Sort by version — keep the latest
+  if [ -z "$LATEST_VERSION" ] || [[ "$version" > "$LATEST_VERSION" ]]; then
+    LATEST_VERSION="$version"
+    PHOTO_JSON="$file"
+    COMPONENT_DIR="$dir"
+  fi
 done < <(find "$BRAVE_USER_DATA" -name "photo.json" -type f -print0 2>/dev/null)
 
 if [ -z "$PHOTO_JSON" ]; then
@@ -54,15 +59,41 @@ if [ -z "$PHOTO_JSON" ]; then
   exit 1
 fi
 
+echo ""
+echo "Using latest component: $COMPONENT_DIR"
 echo "Parsing: $PHOTO_JSON"
+echo ""
+
+# --- Diagnostics: show what's in the component directory ---
+echo "--- Component directory contents ---"
+ls -lh "$COMPONENT_DIR"/ 2>/dev/null || echo "(could not list directory)"
+echo ""
+
+echo "--- photo.json summary ---"
+node -e "
+const data = JSON.parse(require('fs').readFileSync('$PHOTO_JSON', 'utf-8'));
+const photos = Array.isArray(data) ? data : (data.images || data.backgrounds || []);
+console.log('Total entries in photo.json: ' + photos.length);
+console.log('');
+console.log('First entry (raw keys):');
+if (photos.length > 0) {
+  const keys = Object.keys(photos[0]);
+  console.log('  Keys: ' + keys.join(', '));
+  for (const k of keys) {
+    const v = String(photos[0][k]);
+    console.log('  ' + k + ': ' + (v.length > 80 ? v.slice(0, 80) + '...' : v));
+  }
+}
+console.log('');
+console.log('All filenames from photo.json:');
+for (const p of photos) {
+  const f = p.wallpaperImageUrl || p.filename || p.image || '(no filename field)';
+  console.log('  - ' + f);
+}
+"
+echo ""
 
 # --- Parse photo.json and extract data ---
-# photo.json contains an array of background objects.
-# We need to read each entry and:
-#   1. Copy the image file to public/backgrounds/
-#   2. Generate a slug
-#   3. Add metadata to our JSON
-
 # Create output directory
 mkdir -p "$BACKGROUNDS_DIR"
 
@@ -83,34 +114,59 @@ try {
 } catch (e) {
   existing = [];
 }
-const existingFilenames = new Set(existing.map(b => b.filename));
 
 // Process each entry from photo.json
 const photos = Array.isArray(photoJson) ? photoJson : (photoJson.images || photoJson.backgrounds || []);
 let newCount = 0;
+let copyCount = 0;
+let updateCount = 0;
 let nextOrder = existing.length > 0
   ? Math.max(...existing.map(b => b.sort_order)) + 1
   : 1;
+
+// Build a lookup of existing entries by filename for updates
+const existingByFilename = {};
+for (const bg of existing) {
+  existingByFilename[bg.filename] = bg;
+}
+
+// Also try to copy any .jpg files in the component dir that aren't in photo.json
+// (Brave may store images that aren't listed in the metadata)
+const componentFiles = fs.readdirSync(componentDir)
+  .filter(f => /\.(jpg|jpeg|png|webp)$/i.test(f));
+console.log('Image files found in component directory: ' + componentFiles.length);
+console.log('');
 
 for (const photo of photos) {
   // Normalize field names — photo.json may use different key names
   const filename = photo.wallpaperImageUrl || photo.filename || photo.image || '';
   if (!filename) continue;
 
-  // Check if we already have this image
-  if (existingFilenames.has(filename)) {
-    console.log('  [skip] ' + filename + ' (already exists)');
-    continue;
+  // Always try to copy the image file if it's missing from public/backgrounds/
+  const destPath = path.join(bgDir, filename);
+  if (!fs.existsSync(destPath)) {
+    const srcPath = path.join(componentDir, filename);
+    if (fs.existsSync(srcPath)) {
+      fs.copyFileSync(srcPath, destPath);
+      console.log('  [copy] ' + filename);
+      copyCount++;
+    } else {
+      console.log('  [MISS] ' + filename + ' — not found in component dir');
+    }
   }
 
-  // Copy image file if it exists
-  const srcPath = path.join(componentDir, filename);
-  if (fs.existsSync(srcPath)) {
-    const destPath = path.join(bgDir, filename);
-    fs.copyFileSync(srcPath, destPath);
-    console.log('  [copy] ' + filename);
-  } else {
-    console.log('  [warn] Image not found: ' + srcPath);
+  // Update image_url for existing entries if the file now exists
+  if (existingByFilename[filename]) {
+    if (fs.existsSync(destPath) && !existingByFilename[filename].image_url) {
+      existingByFilename[filename].image_url = '/backgrounds/' + filename;
+      console.log('  [update] ' + filename + ' → image_url set');
+      updateCount++;
+    } else if (!fs.existsSync(destPath)) {
+      console.log('  [exists-no-file] ' + filename + ' — metadata exists but no image');
+    } else {
+      console.log('  [ok] ' + filename);
+    }
+    continue;
   }
 
   // Generate slug from filename
@@ -135,7 +191,7 @@ for (const photo of photos) {
     license: license,
     original_url: originalUrl,
     description: author + ' photography',
-    image_url: '/backgrounds/' + filename,
+    image_url: fs.existsSync(destPath) ? '/backgrounds/' + filename : null,
     thumbnail_url: null,
     width: null,
     height: null,
@@ -145,8 +201,9 @@ for (const photo of photos) {
   };
 
   existing.push(entry);
-  existingFilenames.add(filename);
+  existingByFilename[filename] = entry;
   newCount++;
+  console.log('  [new] ' + filename + ' (' + author + ')');
 }
 
 // Mark old 'is_current' entries as not current if they're not in the new set
@@ -156,21 +213,24 @@ for (const bg of existing) {
     bg.is_current = false;
   } else {
     bg.is_current = true;
-    // Update image_url if we now have the file
-    const imgPath = path.join(bgDir, bg.filename);
-    if (fs.existsSync(imgPath) && !bg.image_url) {
-      bg.image_url = '/backgrounds/' + bg.filename;
-    }
   }
 }
 
 // Write updated data
 fs.writeFileSync(dataFile, JSON.stringify(existing, null, 2) + '\n');
 console.log('');
-console.log('Done! Added ' + newCount + ' new background(s). Total: ' + existing.length);
+console.log('=== Summary ===');
+console.log('New entries added:   ' + newCount);
+console.log('Images copied:       ' + copyCount);
+console.log('image_url updated:   ' + updateCount);
+console.log('Total backgrounds:   ' + existing.length);
+console.log('Images in component: ' + componentFiles.length);
 "
 
 echo ""
 echo "=== Extraction complete ==="
 echo "Images in: $BACKGROUNDS_DIR"
 echo "Data in:   $DATA_FILE"
+echo ""
+echo "Files copied to public/backgrounds/:"
+ls -1 "$BACKGROUNDS_DIR"/*.jpg 2>/dev/null || echo "  (none)"
