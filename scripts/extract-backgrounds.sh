@@ -109,8 +109,8 @@ if (photos.length > 0) {
 console.log('All entries:');
 for (let i = 0; i < photos.length; i++) {
   const p = photos[i];
-  // Try every plausible filename key
-  const f = p.wallpaperImageUrl || p.imageUrl || p.image_url
+  // Try every plausible filename key — 'source' is what Brave uses as of 2026-Q1
+  const f = p.source || p.wallpaperImageUrl || p.imageUrl || p.image_url
     || p.filename || p.file || p.image || p.url || p.name || '(no filename field found)';
   const a = p.author || p.photographer || p.credit || '?';
   console.log('  ' + (i+1) + '. ' + f + ' — ' + a);
@@ -175,8 +175,8 @@ for (const img of componentImages) {
 console.log('');
 
 for (const photo of photos) {
-  // Try every plausible filename key
-  const filename = photo.wallpaperImageUrl || photo.imageUrl || photo.image_url
+  // Try every plausible filename key — 'source' is what Brave uses as of 2026-Q1
+  const filename = photo.source || photo.wallpaperImageUrl || photo.imageUrl || photo.image_url
     || photo.filename || photo.file || photo.image || '';
   if (!filename) continue;
 
@@ -252,7 +252,7 @@ for (const photo of photos) {
 
 // Mark is_current based on whether the entry is in the current photo.json
 const currentFilenames = new Set(photos.map(p => {
-  const f = p.wallpaperImageUrl || p.imageUrl || p.image_url
+  const f = p.source || p.wallpaperImageUrl || p.imageUrl || p.image_url
     || p.filename || p.file || p.image || '';
   return path.basename(f);
 }));
