@@ -1,10 +1,11 @@
 # Brave Backgrounds — Technical Specification
 
-**Project:** Unofficial Brave NTP Photography Gallery & Web3 Analytics  
-**Stack:** Next.js 14 (App Router), TypeScript, Tailwind CSS, Supabase (Postgres)  
-**Deploy:** Vercel  
-**Author:** Evan (Brave Support / UX Designer)  
-**Status:** Draft  
+**Project:** Unofficial Brave NTP Photography Gallery & Web3 Analytics
+**Stack:** Next.js 14 (App Router), TypeScript, Tailwind CSS, Recharts
+**Data:** Static JSON + automated GitHub Actions pipeline
+**Deploy:** Vercel
+**Author:** Evan (Brave Support / UX Designer)
+**Status:** v2 — Revised architecture (no external database, fully automated)
 
 ---
 
@@ -13,9 +14,20 @@
 An unofficial site that:
 
 1. Archives the photography wallpapers that ship on Brave Browser's New Tab Page (NTP)
-2. Embeds Dune Analytics dashboards/charts from `https://dune.com/brainsy/brave-web3`
+2. Renders custom Web3 analytics charts from Dune Analytics API data (`https://dune.com/brainsy/brave-web3`)
 
 The NTP photos are **not** ads — they're curated landscape/nature photography delivered via Brave's "NTP Background Images" browser component. This site is independent and not affiliated with Brave Software, Inc.
+
+### Architecture Decisions
+
+| Concern | Approach |
+|---------|----------|
+| Database | **None** — static JSON file (`data/backgrounds.json`) in the repo |
+| Image storage | **In-repo** — `public/backgrounds/` committed by GitHub Action |
+| Image pipeline | **Automated** — weekly GitHub Action installs Brave, extracts images |
+| Analytics | **Custom charts** — Dune API → Recharts (no iframes) |
+| Data fetching | **Static imports** — JSON imported at build time |
+| Deploy | **Vercel** — auto-deploys on push |
 
 ---
 
@@ -27,231 +39,254 @@ Brave ships rotating wallpapers via a browser component called "Brave NTP backgr
 
 **Where the data actually lives:**
 
-- **In the brave-core repo** (`backgrounds.ts`): Contains the default/fallback wallpaper metadata. Current file at `brave-core/components/brave_new_tab_ui/data/backgrounds.ts` has a single default entry. Historical entries are visible in git history.
-- **In the NTP Background Images component** (`photo.json`): Delivered to browser clients via `brave://components`. Contains the full current rotation with metadata (filename, author, link, license). This file is on the user's local disk in a versioned component directory.
+- **In the brave-core repo** (`backgrounds.ts`): Contains the default/fallback wallpaper metadata. Historical entries are visible in git history.
+- **In the NTP Background Images component** (`photo.json`): Delivered to browser clients via `brave://components`. Contains the full current rotation with metadata (filename, author, link, license).
 
-**Data shape** (from `backgrounds.ts` and `photo.json`):
+**Image access method:**
+
+Images can be found by opening a New Tab in Brave, then in DevTools (F12) → Network tab → look for the photographer name in `.jpg` format. Example: `brave://background-wallpaper/colton-everill.jpg`
+
+**Data shape** (from `photo.json`):
 
 ```typescript
 interface BraveBackground {
   type: 'brave';
-  wallpaperImageUrl: string;    // e.g. "dylan-malval_sea-min.webp"
-  author: string;               // e.g. "Dylan Malval"
-  link: string;                 // photographer portfolio URL (may be empty)
+  wallpaperImageUrl: string;    // e.g. "colton-everill.jpg"
+  author: string;               // e.g. "Colton Everill"
+  link: string;                 // photographer portfolio URL
   originalUrl: string;          // source/origin info
   license: string;              // e.g. "Unsplash License", "used with permission"
 }
 ```
 
-**Known photographers across all seasons** (extracted from git history of brave-core and GitHub issues):
+**Known photographers across all seasons:**
 
 | Season | Photographers |
 |--------|-------------|
 | Fall 2019 | Anders Jildén, Andreas Gücklhorn, Annie Spratt, Anton Repponen, Joseph Gardner, Matt Palmer, Pok Rie, Xavier Balderas Cejudo |
-| 2020/2021 | Alex Plesovskich, Dylan Malval, Corwin Prescott, David Neeleman, Zane Lee, Will Christiansen |
-| Fall 2021 | Dylan Malval, Nick Sorocka, Spencer Moore, Corwin Prescott, David Neeleman |
-| Spring 2024 | 7 new images (photographers named in internal Brave Slack, some public: Ric Matkowski, Lawrence Braun, Pok Rie, Adrien Olichon, Luca Bravo, Ryan Stefan, Colton Everill) |
+| 2020/2021 | Alex Plesovskich, Dylan Malval, Zane Lee, Will Christiansen |
+| Fall 2021 | Dylan Malval, Nick Sorocka, Spencer Moore, Corwin Prescott (×2), David Neeleman |
+| Spring 2024 | Ric Matkowski, Lawrence Braun, Pok Rie, Adrien Olichon, Luca Bravo, Ryan Stefan, Colton Everill |
 
-**Image acquisition strategy:**
-
-Since `brave://` URLs aren't web-accessible, images must be manually extracted and hosted. Options:
-
-1. **Manual extraction from local Brave install** — Locate the NTP Background Images component directory on disk, find `photo.json` + image files, upload to Supabase Storage or Cloudflare R2
-2. **Automated extraction via CI** — GitHub Action that installs Brave, lets components download, extracts images, uploads to storage (more complex but keeps the archive current)
-3. **Seed with placeholder gradients initially** — Ship the site with metadata only, add real images as they're extracted
-
-**For MVP, use option 3 (placeholders) with a manual upload flow for real images later.**
-
-### 2.2 Dune Analytics Embeds
+### 2.2 Dune Analytics API
 
 Dashboard URL: `https://dune.com/brainsy/brave-web3`
 
-Dune charts can be embedded via iframes using the format:
+Charts are rendered using the **Dune API** (not iframes) with custom Recharts components for full styling control.
 
-```html
-<iframe src="https://dune.com/embeds/[query-id]/[visualization-id]" height="500" width="100%"></iframe>
-```
-
-To get embed URLs: Open any visualization on the dashboard → Click "Share" → Copy the embed iframe code. Dark mode can be toggled in the share menu.
-
-**Store embed configurations in a config file** so they can be updated without code changes:
+**Integration pattern:**
 
 ```typescript
-// src/config/dune-embeds.ts
-interface DuneEmbed {
-  id: string;
-  title: string;
+// src/config/dune-queries.ts — add query IDs here
+export const duneQueries: DuneQueryConfig[] = [
+  {
+    id: 'bat-overview',
+    title: 'BAT Token Overview',
+    queryId: 123456,          // from dune.com/queries/123456
+    visualizationType: 'area',
+    fullWidth: true,
+  },
+];
+```
+
+API endpoint: `https://api.dune.com/api/v1/query/{queryId}/results`
+Auth: `X-Dune-API-Key` header
+Caching: Results cached for 1 hour via Next.js `revalidate`
+
+---
+
+## 3. Data Layer (No Database)
+
+### 3.1 `data/backgrounds.json`
+
+All background metadata lives in a single JSON file, committed to the repo. This file is updated automatically by the GitHub Action when new wallpapers are detected.
+
+```typescript
+interface Background {
+  slug: string;            // URL-friendly ID, e.g. "sp24-colton-everill"
+  filename: string;        // image filename, e.g. "colton-everill.jpg"
+  author: string;
+  author_url: string;
+  season: string;          // e.g. "Spring 2024"
+  license: string;
+  original_url: string;
   description: string;
-  embedUrl: string;          // e.g. "https://dune.com/embeds/1234/5678"
-  height: number;            // iframe height in px
-  fullWidth: boolean;        // span full grid width
+  image_url: string | null;      // path to hosted image, null = placeholder
+  thumbnail_url: string | null;
+  width: number | null;
+  height: number | null;
+  dominant_color: string;        // hex color for placeholder gradient
+  is_current: boolean;           // currently in NTP rotation
+  sort_order: number;
 }
 ```
 
-The initial set of embeds will be populated by Evan from his Dune dashboard. The config should support adding/removing/reordering embeds easily.
+### 3.2 Image Storage
+
+Images are stored in `public/backgrounds/` and served as static assets by Next.js/Vercel.
+
+- Estimated size: ~25 images × ~500KB = ~12MB (manageable in git)
+- Format: `.jpg` as delivered by Brave component
+- New seasons add ~5-8 images per year
 
 ---
 
-## 3. Database Schema (Supabase / Postgres)
+## 4. Automated Image Pipeline
 
-### 3.1 `backgrounds` table
+### 4.1 GitHub Action (`.github/workflows/extract-backgrounds.yml`)
 
-```sql
-CREATE TABLE backgrounds (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  slug TEXT UNIQUE NOT NULL,               -- e.g. "dylan-malval-sea"
-  filename TEXT NOT NULL,                   -- original filename from photo.json
-  author TEXT NOT NULL,                     -- photographer name
-  author_url TEXT,                          -- photographer portfolio/social link
-  season TEXT NOT NULL,                     -- e.g. "Spring 2024", "Fall 2021"
-  license TEXT,                             -- e.g. "Unsplash License", "used with permission"
-  original_url TEXT,                        -- source info
-  description TEXT,                         -- brief description of the image
-  image_url TEXT,                           -- URL to hosted image (Supabase Storage or R2)
-  thumbnail_url TEXT,                       -- smaller version for grid
-  width INT,                                -- original image width in px
-  height INT,                               -- original image height in px
-  dominant_color TEXT,                       -- hex color for placeholder bg
-  is_current BOOLEAN DEFAULT false,          -- currently in NTP rotation
-  sort_order INT DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
+**Schedule:** Weekly (Monday 06:00 UTC) + manual trigger
 
-CREATE INDEX idx_backgrounds_season ON backgrounds(season);
-CREATE INDEX idx_backgrounds_author ON backgrounds(author);
-CREATE INDEX idx_backgrounds_is_current ON backgrounds(is_current);
+**Pipeline:**
+
+```
+1. Checkout repo
+2. Install Brave Browser on Ubuntu runner
+3. Launch Brave headless → triggers NTP component download
+4. Wait for photo.json to appear (polls every 10s, up to 3 min)
+5. Run extraction script (scripts/extract-backgrounds.sh)
+6. Script parses photo.json, copies images, merges into backgrounds.json
+7. If new images found → commit + push
+8. Vercel auto-deploys on new commit
 ```
 
-### 3.2 `dune_embeds` table (optional — could also just use config file)
+### 4.2 Extraction Script (`scripts/extract-backgrounds.sh`)
 
-```sql
-CREATE TABLE dune_embeds (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  title TEXT NOT NULL,
-  description TEXT,
-  embed_url TEXT NOT NULL,
-  height INT DEFAULT 500,
-  full_width BOOLEAN DEFAULT false,
-  sort_order INT DEFAULT 0,
-  is_active BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-```
-
-### 3.3 Supabase Storage
-
-Create a bucket called `backgrounds` with public read access for serving images.
+- Searches Brave user data for `photo.json`
+- Parses metadata using embedded Node.js
+- Copies image files to `public/backgrounds/`
+- Merges new entries into `data/backgrounds.json`
+- Marks old images as `is_current: false`
+- Idempotent — safe to run multiple times
 
 ---
 
-## 4. Project Structure
+## 5. Project Structure
 
 ```
 brave-backgrounds/
+├── .github/
+│   └── workflows/
+│       └── extract-backgrounds.yml    # Weekly automated extraction
+├── scripts/
+│   └── extract-backgrounds.sh         # Image extraction script
+├── data/
+│   └── backgrounds.json               # All background metadata (auto-updated)
+├── public/
+│   └── backgrounds/                   # Images (auto-committed by Action)
 ├── src/
 │   ├── app/
-│   │   ├── layout.tsx              # Root layout with nav, footer
-│   │   ├── page.tsx                # Home — hero + featured photos + analytics preview
+│   │   ├── layout.tsx                 # Root layout with nav, footer, fonts
+│   │   ├── globals.css                # Tailwind + base styles
+│   │   ├── page.tsx                   # Home — hero, stats, featured, analytics preview
 │   │   ├── gallery/
-│   │   │   └── page.tsx            # Full gallery grid with filters
+│   │   │   ├── page.tsx               # Gallery with season filtering
+│   │   │   └── gallery-content.tsx    # Client-side filter + lightbox state
 │   │   ├── photo/
 │   │   │   └── [slug]/
-│   │   │       └── page.tsx        # Individual photo detail page
+│   │   │       └── page.tsx           # Photo detail with metadata sidebar
 │   │   ├── analytics/
-│   │   │   └── page.tsx            # Dune dashboards page
-│   │   └── about/
-│   │       └── page.tsx            # About + data sources explanation
+│   │   │   └── page.tsx               # Dune charts grid
+│   │   ├── about/
+│   │   │   └── page.tsx               # About, data sources, disclaimer
+│   │   └── api/
+│   │       └── dune/
+│   │           └── [queryId]/
+│   │               └── route.ts       # Dune API proxy
 │   ├── components/
-│   │   ├── nav.tsx                 # Fixed top navigation
-│   │   ├── footer.tsx              # Footer with disclaimer
-│   │   ├── photo-card.tsx          # Gallery grid card
-│   │   ├── photo-grid.tsx          # Responsive grid container
-│   │   ├── photo-lightbox.tsx      # Full-screen image viewer
-│   │   ├── season-filter.tsx       # Filter pills by season
-│   │   ├── dune-embed.tsx          # Iframe wrapper for Dune charts
-│   │   ├── dune-grid.tsx           # Grid layout for embeds
-│   │   ├── stats-bar.tsx           # Key stats display
-│   │   └── hero.tsx                # Landing hero section
+│   │   ├── nav.tsx                    # Fixed nav with mobile menu
+│   │   ├── footer.tsx                 # Footer with disclaimer
+│   │   ├── hero.tsx                   # Landing hero section
+│   │   ├── stats-bar.tsx              # Key stats (wallpapers, photographers, etc.)
+│   │   ├── photo-card.tsx             # Gallery card with hover overlay
+│   │   ├── photo-grid.tsx             # Responsive grid container
+│   │   ├── photo-lightbox.tsx         # Full-screen image viewer with keyboard nav
+│   │   ├── season-filter.tsx          # Filter pills (URL-param based)
+│   │   ├── dune-chart.tsx             # Recharts wrapper (bar, line, area, pie, table)
+│   │   ├── dune-chart-card.tsx        # Chart card with title + badge
+│   │   └── dune-grid.tsx              # Grid layout for analytics cards
 │   ├── lib/
-│   │   ├── supabase.ts             # Supabase client
-│   │   ├── queries.ts              # Data fetching functions
-│   │   └── utils.ts                # Helpers (slug generation, etc.)
+│   │   ├── backgrounds.ts            # Query functions over JSON data
+│   │   ├── dune.ts                    # Dune API client + data formatting
+│   │   └── utils.ts                   # Color adjustment, slugify, etc.
 │   ├── config/
-│   │   ├── dune-embeds.ts          # Dune embed configurations
-│   │   └── site.ts                 # Site metadata, social links
+│   │   ├── site.ts                    # Site metadata, URLs
+│   │   └── dune-queries.ts            # Dune query configurations
 │   └── types/
-│       └── index.ts                # TypeScript interfaces
-├── public/
-│   └── og-image.png                # Open Graph preview image
-├── seed/
-│   └── backgrounds.ts              # Seed script for initial data
-├── supabase/
-│   └── migrations/
-│       └── 001_create_tables.sql   # Schema migration
+│       └── index.ts                   # TypeScript interfaces
 ├── tailwind.config.ts
-├── next.config.ts
-└── package.json
+├── next.config.mjs
+├── tsconfig.json
+├── package.json
+└── brave-backgrounds-SPEC.md
 ```
 
 ---
 
-## 5. Pages & Routes
+## 6. Pages & Routes
 
-### 5.1 Home (`/`)
+### 6.1 Home (`/`)
 
 - Hero section with project title, tagline, and "Unofficial" badge
 - Stats bar: total wallpapers, photographers, seasons, "since 2019"
-- Featured photos section: 6 latest backgrounds in a grid (link to `/gallery`)
-- Analytics preview: 1-2 featured Dune embeds (link to `/analytics`)
+- Featured photos: current NTP rotation in a grid (links to `/gallery`)
+- Analytics preview: CTA to configure Dune queries (links to `/analytics`)
 - About blurb
 
-### 5.2 Gallery (`/gallery`)
+### 6.2 Gallery (`/gallery`)
 
-- Filter bar with season pills: "All", "Spring 2024", "Fall 2021", "2020/2021", "Fall 2019"
-- Responsive photo grid (masonry or uniform aspect ratio)
-- Each card shows: image, photographer name on hover, season badge
-- Click opens lightbox OR navigates to `/photo/[slug]`
-- Sort by: newest first (default), photographer name
+- Season filter pills: "All", "Spring 2024", "Fall 2021", "2020/2021", "Fall 2019"
+- URL-param based filtering (`/gallery?season=Spring+2024`) for shareable links
+- Responsive photo grid (1 col mobile, 2-3 cols desktop)
+- Cards show: image (or gradient placeholder), author + season on hover
+- First card in "All" view spans 2 columns (featured)
+- Count display: "25 wallpapers"
 
-### 5.3 Photo Detail (`/photo/[slug]`)
+### 6.3 Photo Detail (`/photo/[slug]`)
 
-- Full-width hero image
-- Metadata sidebar: photographer, portfolio link, season, license, original URL
-- "Download" button (links to full-res hosted image)
-- Related photos (same photographer or same season)
+- Full-width hero image (50-70vh)
+- Gradient overlay fading to page background
+- Metadata sidebar: photographer, portfolio link, season, license, filename
+- "Currently in rotation" badge for active wallpapers
+- Download button (direct link to image)
+- Related wallpapers (same author, then same season)
 - Back to gallery link
+- Static generation via `generateStaticParams`
 
-### 5.4 Analytics (`/analytics`)
+### 6.4 Analytics (`/analytics`)
 
-- Section header explaining the Dune data
-- Grid of Dune embed iframes, loaded from config
-- Each embed in a card with title, description, and "View on Dune" link
-- Support for full-width and half-width cards
-- Link to full dashboard: `https://dune.com/brainsy/brave-web3`
+- Grid of custom Recharts charts, configured via `src/config/dune-queries.ts`
+- Each chart in a card with title, description, "Dune Analytics" badge
+- Supports: bar, line, area, pie, and table visualizations
+- Empty state: instructions to configure queries
+- Link to full Dune dashboard
 
-### 5.5 About (`/about`)
+### 6.5 About (`/about`)
 
-- Explanation of what NTP backgrounds are
-- How the data is sourced (component extraction, brave-core repo)
+- What NTP backgrounds are
+- How data is sourced (component extraction, brave-core repo, weekly automation)
+- Season links to filtered gallery
 - Disclaimer: unofficial, not affiliated with Brave Software
-- Credits to photographers
-- Link to brave-core repo, Brave website
+
+### 6.6 API Route (`/api/dune/[queryId]`)
+
+- Proxy to Dune API with server-side API key
+- Returns formatted data + column metadata
+- Error handling for missing key or failed fetches
 
 ---
 
-## 6. Design System
+## 7. Design System
 
-### 6.1 Colors
+### 7.1 Colors
 
 ```css
-/* Dark theme inspired by Brave's dark mode */
 --bg-primary: #0F0B15;          /* Deep purple-black */
 --bg-secondary: #1A1425;        /* Slightly lighter */
 --bg-card: #221D2E;             /* Card backgrounds */
 --border: #2E2840;              /* Subtle borders */
 
---brave-orange: #FB542B;        /* Brave's signature orange — use for accents */
+--brave-orange: #FB542B;        /* Accent color */
 --brave-orange-hover: #FF6B42;
 
 --text-primary: #F0ECF5;
@@ -259,308 +294,119 @@ brave-backgrounds/
 --text-dim: #6B6478;
 ```
 
-### 6.2 Typography
+### 7.2 Typography
 
-- **Headings:** `Playfair Display` (serif, editorial feel for a photography site)
+- **Headings:** `Playfair Display` (serif, editorial feel)
 - **Body:** `DM Sans` (clean sans-serif)
-- Import via Google Fonts or `next/font`
+- Loaded via Google Fonts `<link>` tag
 
-### 6.3 Design Notes
+### 7.3 Design Notes
 
-- Dark theme throughout — photography-forward, images should be the star
+- Dark theme throughout — photography-forward
 - Minimal chrome, generous whitespace
 - Cards with subtle borders, no heavy shadows
-- Hover states: slight lift + border color change to `--brave-orange`
-- "Unofficial" badge visible in nav (orange outline pill)
-- Responsive: single column on mobile, 2-3 columns on desktop
-- Lightbox should be dark with blur backdrop
-- Season filter pills as horizontal scrollable row on mobile
+- Hover: slight lift (`-translate-y-0.5`) + orange border
+- "Unofficial" badge: orange outline pill in nav and hero
+- Mobile-first responsive design
+- Season filter: horizontal scrollable pills on mobile
+- Lightbox: dark backdrop with blur, keyboard navigation (Escape, arrows)
 
 ---
 
-## 7. Component Specifications
+## 8. Component Specifications
 
-### 7.1 `<PhotoCard />`
-
-```typescript
-interface PhotoCardProps {
-  slug: string;
-  imageUrl: string | null;       // null = show placeholder gradient
-  thumbnailUrl: string | null;
-  author: string;
-  season: string;
-  description?: string;
-  dominantColor?: string;        // for placeholder bg
-  featured?: boolean;            // larger card, spans 2 columns
-}
-```
+### 8.1 `<PhotoCard />`
 
 - Aspect ratio: `16/10` default, `21/9` for featured
 - Overlay on hover: gradient from bottom with author name + season badge
-- If no `imageUrl`, render a gradient placeholder using `dominantColor` or a generated gradient
+- If no `image_url`: gradient placeholder using `dominant_color`
 - Click navigates to `/photo/[slug]`
 
-### 7.2 `<DuneEmbed />`
+### 8.2 `<DuneChart />`
 
-```typescript
-interface DuneEmbedProps {
-  title: string;
-  description?: string;
-  embedUrl: string;
-  height?: number;               // default 400
-  fullWidth?: boolean;
-}
-```
+- Recharts wrapper supporting bar, line, area, pie, and table types
+- Dark-themed: grid lines `#2E2840`, text `#6B6478`, accent `#FB542B`
+- Auto-detects X axis (first column) and data series (remaining columns)
+- Chart colors: `#FB542B`, `#FF6B42`, `#9B93A8`, `#6B6478`, `#F0ECF5`
 
-- Wraps an iframe in a styled card
-- Card header with title + "Dune Analytics" badge
-- Lazy-load iframe (use `loading="lazy"` or IntersectionObserver)
-- Footer link: "View on Dune →"
-- Loading state: shimmer placeholder while iframe loads
+### 8.3 `<SeasonFilter />`
 
-### 7.3 `<SeasonFilter />`
+- Horizontal pill buttons, scrollable on mobile
+- Active state: filled `--brave-orange`
+- Updates URL search params for shareable filters
 
-```typescript
-interface SeasonFilterProps {
-  seasons: string[];
-  activeSeason: string;
-  onChange: (season: string) => void;
-}
-```
-
-- Horizontal row of pill buttons
-- Active state: filled with `--brave-orange`
-- Scrollable on mobile with `overflow-x: auto`
-
-### 7.4 `<PhotoLightbox />`
+### 8.4 `<PhotoLightbox />`
 
 - Full-screen overlay, `z-index: 200`
 - Dark backdrop with blur
-- Image centered, max 90vw / 80vh
-- Photographer name, description, links below image
-- Close on Escape key, click backdrop, or X button
-- Arrow keys for prev/next navigation
+- Close on Escape, backdrop click, or X button
+- Arrow keys + buttons for prev/next navigation
 
 ---
 
-## 8. Data Fetching
-
-### 8.1 Gallery data
-
-Use React Server Components to fetch from Supabase:
-
-```typescript
-// src/lib/queries.ts
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
-export async function getBackgrounds(season?: string) {
-  let query = supabase
-    .from('backgrounds')
-    .select('*')
-    .order('sort_order', { ascending: true });
-
-  if (season && season !== 'All') {
-    query = query.eq('season', season);
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return data;
-}
-
-export async function getBackgroundBySlug(slug: string) {
-  const { data, error } = await supabase
-    .from('backgrounds')
-    .select('*')
-    .eq('slug', slug)
-    .single();
-
-  if (error) throw error;
-  return data;
-}
-
-export async function getSeasons(): Promise<string[]> {
-  const { data } = await supabase
-    .from('backgrounds')
-    .select('season')
-    .order('season');
-
-  const seasons = [...new Set(data?.map(d => d.season))];
-  return seasons;
-}
-```
-
-### 8.2 Dune embeds
-
-Read from config file (no database needed for MVP):
-
-```typescript
-// src/config/dune-embeds.ts
-export const duneEmbeds: DuneEmbed[] = [
-  {
-    id: 'bat-overview',
-    title: 'BAT Token Overview',
-    description: 'Key metrics for the Basic Attention Token',
-    embedUrl: 'https://dune.com/embeds/QUERY_ID/VIZ_ID',
-    height: 500,
-    fullWidth: true,
-  },
-  // Evan: Add your actual embed URLs here.
-  // Get them from dune.com/brainsy/brave-web3 → Share → Embed
-];
-```
-
----
-
-## 9. Seed Data
-
-Create a seed script that populates the `backgrounds` table with known photographer data. Images will be null initially (placeholder gradients shown).
-
-```typescript
-// seed/backgrounds.ts
-const backgrounds = [
-  // Spring 2024
-  { slug: 'sp24-ric-matkowski', filename: 'ric-matkowski.webp', author: 'Ric Matkowski', author_url: '', season: 'Spring 2024', license: 'used with permission', description: 'Mountain landscape at golden hour', dominant_color: '#2d3436', sort_order: 1 },
-  { slug: 'sp24-lawrence-braun', filename: 'lawrence-braun.webp', author: 'Lawrence Braun', author_url: '', season: 'Spring 2024', license: 'used with permission', description: 'Ocean cliffs at sunrise', dominant_color: '#0d1b2a', sort_order: 2 },
-  { slug: 'sp24-pok-rie', filename: 'pok-rie-spring24.webp', author: 'Pok Rie', author_url: 'https://www.pexels.com/@pok-rie-33563', season: 'Spring 2024', license: 'Pexels License', description: 'Aerial ocean view', dominant_color: '#003049', sort_order: 3 },
-  { slug: 'sp24-adrien-olichon', filename: 'adrien-olichon.webp', author: 'Adrien Olichon', author_url: 'https://unsplash.com/@adrienolichon', season: 'Spring 2024', license: 'Unsplash License', description: 'Mountain range vista', dominant_color: '#1b4332', sort_order: 4 },
-  { slug: 'sp24-luca-bravo', filename: 'luca-bravo.webp', author: 'Luca Bravo', author_url: 'https://unsplash.com/@lucabravo', season: 'Spring 2024', license: 'Unsplash License', description: 'Alpine lake reflection', dominant_color: '#0b132b', sort_order: 5 },
-  { slug: 'sp24-ryan-stefan', filename: 'ryan-stefan.webp', author: 'Ryan Stefan', author_url: '', season: 'Spring 2024', license: 'used with permission', description: 'Desert canyon sunset', dominant_color: '#d62828', sort_order: 6 },
-  { slug: 'sp24-colton-everill', filename: 'colton-everill.webp', author: 'Colton Everill', author_url: '', season: 'Spring 2024', license: 'used with permission', description: 'Forest waterfall', dominant_color: '#132a13', sort_order: 7 },
-
-  // Fall 2021
-  { slug: 'f21-dylan-malval-sea', filename: 'dylan-malval_sea.webp', author: 'Dylan Malval', author_url: 'https://www.instagram.com/vass_captures/', season: 'Fall 2021', license: 'used with permission', description: 'Dramatic seascape', dominant_color: '#14213d', sort_order: 10 },
-  { slug: 'f21-nick-sorocka', filename: 'nick-sorocka.webp', author: 'Nick Sorocka', author_url: '', season: 'Fall 2021', license: 'used with permission', description: 'Mountain wilderness', dominant_color: '#1c1c1c', sort_order: 11 },
-  { slug: 'f21-spencer-moore', filename: 'spencer-moore.webp', author: 'Spencer Moore', author_url: '', season: 'Fall 2021', license: 'used with permission', description: 'Pacific coastline', dominant_color: '#003049', sort_order: 12 },
-  { slug: 'f21-corwin-prescott-beach', filename: 'corwin-prescott_beach.avif', author: 'Corwin Prescott', author_url: '', season: 'Fall 2021', license: 'used with permission', description: 'Beach at twilight', dominant_color: '#240046', sort_order: 13 },
-  { slug: 'f21-corwin-prescott-canyon', filename: 'corwin-prescott_canyon.avif', author: 'Corwin Prescott', author_url: '', season: 'Fall 2021', license: 'used with permission', description: 'Canyon formations', dominant_color: '#d62828', sort_order: 14 },
-  { slug: 'f21-david-neeleman', filename: 'david-neeleman.avif', author: 'David Neeleman', author_url: '', season: 'Fall 2021', license: 'used with permission', description: 'Aerial landscape', dominant_color: '#2d6a4f', sort_order: 15 },
-
-  // 2020/2021
-  { slug: '2021-alex-plesovskich', filename: 'alex-plesovskich.avif', author: 'Alex Plesovskich', author_url: 'https://unsplash.com/@aples', season: '2020/2021', license: 'Unsplash License', description: 'Abstract nature scene', dominant_color: '#10002b', sort_order: 20 },
-  { slug: '2021-dylan-malval-valley', filename: 'dylan-malval_valley.avif', author: 'Dylan Malval', author_url: 'https://www.instagram.com/vass_captures/', season: '2020/2021', license: 'used with permission', description: 'Valley vista', dominant_color: '#1b4332', sort_order: 21 },
-  { slug: '2021-zane-lee', filename: 'zane-lee.avif', author: 'Zane Lee', author_url: '', season: '2020/2021', license: 'used with permission', description: 'Forested mountains', dominant_color: '#132a13', sort_order: 22 },
-  { slug: '2021-will-christiansen', filename: 'will-christiansen.avif', author: 'Will Christiansen', author_url: '', season: '2020/2021', license: 'used with permission', description: 'Desert starscape', dominant_color: '#0d1321', sort_order: 23 },
-
-  // Fall 2019 (original set)
-  { slug: '2019-anders-jilden', filename: 'anders-jilden.webp', author: 'Anders Jildén', author_url: 'https://unsplash.com/@andersjilden', season: 'Fall 2019', license: 'Unsplash License', description: 'Northern landscapes', dominant_color: '#0d1b2a', sort_order: 30 },
-  { slug: '2019-andreas-gucklhorn', filename: 'andreas-gucklhorn.webp', author: 'Andreas Gücklhorn', author_url: 'https://unsplash.com/@draufsicht', season: 'Fall 2019', license: 'Unsplash License', description: 'Solar panels landscape', dominant_color: '#003049', sort_order: 31 },
-  { slug: '2019-annie-spratt', filename: 'annie-spratt.webp', author: 'Annie Spratt', author_url: 'https://unsplash.com/@anniespratt', season: 'Fall 2019', license: 'Unsplash License', description: 'Countryside path', dominant_color: '#2d6a4f', sort_order: 32 },
-  { slug: '2019-anton-repponen', filename: 'anton-repponen.webp', author: 'Anton Repponen', author_url: 'https://unsplash.com/@repponen', season: 'Fall 2019', license: 'Unsplash License', description: 'Arctic scenery', dominant_color: '#1b263b', sort_order: 33 },
-  { slug: '2019-joseph-gardner', filename: 'joseph-gardner.webp', author: 'Joseph Gardner', author_url: 'https://unsplash.com/@josephgardnerphotography', season: 'Fall 2019', license: 'Unsplash License', description: 'Mountain lake', dominant_color: '#14213d', sort_order: 34 },
-  { slug: '2019-matt-palmer', filename: 'matt-palmer.webp', author: 'Matt Palmer', author_url: 'https://unsplash.com/@mattpalmer', season: 'Fall 2019', license: 'Unsplash License', description: 'Glacial landscape', dominant_color: '#1c1c1c', sort_order: 35 },
-  { slug: '2019-pok-rie', filename: 'pok-rie.webp', author: 'Pok Rie', author_url: 'https://www.pexels.com/@pok-rie-33563', season: 'Fall 2019', license: 'Pexels License', description: 'Tropical waters', dominant_color: '#005f73', sort_order: 36 },
-  { slug: '2019-xavier-balderas', filename: 'xavier-balderas.webp', author: 'Xavier Balderas Cejudo', author_url: 'https://unsplash.com/@xavibalderas', season: 'Fall 2019', license: 'Unsplash License', description: 'Aurora borealis', dominant_color: '#0a0908', sort_order: 37 },
-];
-```
-
----
-
-## 10. Environment Variables
+## 9. Environment Variables
 
 ```env
 # .env.local
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 NEXT_PUBLIC_SITE_URL=https://brave-backgrounds.vercel.app
+DUNE_API_KEY=your-dune-api-key          # Server-side only
+```
+
+No Supabase variables needed.
+
+---
+
+## 10. Dependencies
+
+```json
+{
+  "dependencies": {
+    "next": "^14",
+    "react": "^18",
+    "react-dom": "^18",
+    "recharts": "^2.12"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "tailwindcss": "^3.4",
+    "autoprefixer": "^10",
+    "postcss": "^8",
+    "eslint": "^8",
+    "eslint-config-next": "^14"
+  }
+}
 ```
 
 ---
 
-## 11. Key Implementation Details
+## 11. Build & Deploy
 
-### 11.1 Image Placeholders
+```bash
+# Local dev
+npm install
+npm run dev
 
-When `image_url` is null (no real image uploaded yet), render a CSS gradient using `dominant_color`:
+# Production build
+npm run build
 
-```tsx
-function PlaceholderImage({ color, description }: { color: string; description: string }) {
-  return (
-    <div
-      className="w-full h-full flex items-center justify-center"
-      style={{
-        background: `linear-gradient(135deg, ${color}, ${adjustBrightness(color, 30)})`,
-      }}
-    >
-      <span className="text-white/30 text-xs uppercase tracking-widest">
-        {description}
-      </span>
-    </div>
-  );
-}
+# Manual image extraction (requires Brave installed locally)
+bash scripts/extract-backgrounds.sh
 ```
 
-### 11.2 Dune Embed Lazy Loading
-
-Wrap Dune iframes in an IntersectionObserver so they only load when scrolled into view:
-
-```tsx
-'use client';
-import { useRef, useState, useEffect } from 'react';
-
-export function DuneEmbed({ embedUrl, height = 400 }: { embedUrl: string; height?: number }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setVisible(true); },
-      { rootMargin: '200px' }
-    );
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <div ref={ref} style={{ height }}>
-      {visible ? (
-        <iframe src={embedUrl} width="100%" height={height} style={{ border: 'none' }} loading="lazy" />
-      ) : (
-        <div className="animate-pulse bg-card rounded-lg w-full h-full" />
-      )}
-    </div>
-  );
-}
-```
-
-### 11.3 Gallery Filtering
-
-Use URL search params for filter state so it's shareable:
-
-```
-/gallery                    → all photos
-/gallery?season=Spring+2024 → filtered by season
-```
-
-Use `useSearchParams()` client-side to read the filter, refetch server-side with the param.
-
-### 11.4 Open Graph / Social Previews
-
-Generate OG images per photo page using Next.js `generateMetadata`:
-
-```typescript
-export async function generateMetadata({ params }: { params: { slug: string } }) {
-  const photo = await getBackgroundBySlug(params.slug);
-  return {
-    title: `${photo.author} — Brave Backgrounds`,
-    description: `${photo.description} | NTP wallpaper from ${photo.season}`,
-    openGraph: {
-      images: [photo.image_url || '/og-image.png'],
-    },
-  };
-}
-```
+Vercel settings:
+- Framework: Next.js
+- Build command: `next build`
+- Output directory: `.next`
+- Environment variables: `NEXT_PUBLIC_SITE_URL`, `DUNE_API_KEY`
 
 ---
 
 ## 12. Disclaimer Requirements
 
-The following must be visible on every page:
+Visible on every page:
 
 - **Nav:** "Unofficial" badge (orange outline pill)
 - **Footer:** "This site is not affiliated with or endorsed by Brave Software, Inc. All photographs are the property of their respective photographers and are used according to their individual licenses."
@@ -570,73 +416,10 @@ The following must be visible on every page:
 
 ## 13. Future Enhancements (Post-MVP)
 
-- **Automated image extraction** — GitHub Action with headless Brave to extract component images on a schedule
-- **Image upload admin** — Simple auth-protected page to upload images and map them to database entries
-- **NTP ad creatives section** — Pull from the public ads catalog (`https://ads-static.brave.com/v9/catalog`) to show New Tab Takeover sponsored images (separate from the photography)
-- **Photographer profiles** — Dedicated pages per photographer with all their Brave contributions
+- **Dominant color extraction** — Auto-detect from images during extraction pipeline
+- **Image optimization** — Convert to WebP/AVIF during extraction, generate thumbnails
+- **Photographer profiles** — Dedicated pages per photographer with all contributions
 - **RSS feed** — Notify followers when new seasonal images are added
 - **Search** — Full-text search across photographer names and descriptions
-- **Dune API integration** — Use Dune's API to fetch chart data directly instead of iframes for better UX
-
----
-
-## 14. Dependencies
-
-```json
-{
-  "dependencies": {
-    "next": "^14",
-    "react": "^18",
-    "react-dom": "^18",
-    "@supabase/supabase-js": "^2",
-    "@supabase/ssr": "^0.5"
-  },
-  "devDependencies": {
-    "typescript": "^5",
-    "@types/node": "^20",
-    "@types/react": "^18",
-    "tailwindcss": "^3.4",
-    "autoprefixer": "^10",
-    "postcss": "^8"
-  }
-}
-```
-
----
-
-## 15. Build & Deploy
-
-```bash
-# Local dev
-npm install
-npm run dev
-
-# Seed database
-npx tsx seed/backgrounds.ts
-
-# Deploy
-# Connect repo to Vercel, set env vars, deploy
-```
-
-Vercel settings:
-- Framework: Next.js
-- Build command: `next build`
-- Output directory: `.next`
-- Environment variables: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-
----
-
-## Summary for Claude Code
-
-**Build a Next.js 14 App Router project** with:
-
-1. A dark-themed photography gallery site using Tailwind CSS
-2. Supabase for storing background metadata (seed with the data in Section 9)
-3. Gallery page with season filtering via URL params
-4. Individual photo detail pages at `/photo/[slug]`
-5. Analytics page with Dune Analytics iframe embeds (configurable via `src/config/dune-embeds.ts`)
-6. Placeholder gradients for images where `image_url` is null
-7. "Unofficial" branding throughout
-8. Colors: dark purple-black bg (`#0F0B15`), Brave orange accent (`#FB542B`)
-9. Fonts: Playfair Display for headings, DM Sans for body
-10. Responsive design, mobile-first
+- **NTP ad creatives section** — Pull from public ads catalog for New Tab Takeover sponsored images
+- **Dune API caching layer** — Persist query results to avoid rate limits
