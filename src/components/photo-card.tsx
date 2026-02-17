@@ -55,9 +55,6 @@ export function PhotoCard({ background, featured }: PhotoCardProps) {
           <p className="text-sm font-semibold text-white">
             {background.author}
           </p>
-          <span className="mt-1 inline-block rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium text-white/80 backdrop-blur-sm">
-            {background.season}
-          </span>
         </div>
       </div>
     </Link>

@@ -60,8 +60,8 @@ export function getRelatedBackgrounds(
 }
 
 export function getStats() {
-  const totalWallpapers = backgrounds.length;
-  const photographers = new Set(backgrounds.map((bg) => bg.author)).size;
-  const seasons = new Set(backgrounds.map((bg) => bg.season)).size;
-  return { totalWallpapers, photographers, seasons, since: 2019 };
+  const withImages = backgrounds.filter((bg) => bg.image_url !== null);
+  const totalWallpapers = withImages.length;
+  const photographers = new Set(withImages.map((bg) => bg.author)).size;
+  return { totalWallpapers, photographers };
 }
