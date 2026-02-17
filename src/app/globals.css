@@ -10,12 +10,3 @@ body {
   background-color: #0f0b15;
   color: #f0ecf5;
 }
-
-/* Hide scrollbar for season filter pills */
-.scrollbar-none {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-.scrollbar-none::-webkit-scrollbar {
-  display: none;
-}
