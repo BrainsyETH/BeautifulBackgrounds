@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { adjustBrightness, getImagePath } from '@/lib/utils';
+import { adjustBrightness, getImagePath, safeColor } from '@/lib/utils';
 import type { Background } from '@/types';
 
 interface PhotoCardProps {
@@ -38,7 +38,7 @@ export function PhotoCard({ background, featured }: PhotoCardProps) {
           <div
             className="flex h-full w-full items-center justify-center"
             style={{
-              background: `linear-gradient(135deg, ${background.dominant_color}, ${adjustBrightness(background.dominant_color, 40)})`,
+              background: `linear-gradient(135deg, ${safeColor(background.dominant_color)}, ${adjustBrightness(safeColor(background.dominant_color), 40)})`,
             }}
           >
             <span className="text-xs uppercase tracking-[0.2em] text-white/20">

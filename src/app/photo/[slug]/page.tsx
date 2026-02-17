@@ -7,7 +7,7 @@ import {
   getRelatedBackgrounds,
   getAllBackgrounds,
 } from '@/lib/backgrounds';
-import { adjustBrightness, getImagePath } from '@/lib/utils';
+import { adjustBrightness, getImagePath, safeColor, safeUrl } from '@/lib/utils';
 import { PhotoGrid } from '@/components/photo-grid';
 
 interface PhotoPageProps {
@@ -63,7 +63,7 @@ export default async function PhotoPage({ params }: PhotoPageProps) {
           <div
             className="flex h-full w-full items-center justify-center"
             style={{
-              background: `linear-gradient(135deg, ${photo.dominant_color}, ${adjustBrightness(photo.dominant_color, 50)})`,
+              background: `linear-gradient(135deg, ${safeColor(photo.dominant_color)}, ${adjustBrightness(safeColor(photo.dominant_color), 50)})`,
             }}
           >
             <span className="text-lg uppercase tracking-[0.3em] text-white/20">
@@ -99,12 +99,12 @@ export default async function PhotoPage({ params }: PhotoPageProps) {
                 <dd className="text-sm text-text-primary">{photo.author}</dd>
               </div>
 
-              {photo.author_url && (
+              {safeUrl(photo.author_url) && (
                 <div>
                   <dt className="text-xs text-text-dim">Portfolio</dt>
                   <dd>
                     <a
-                      href={photo.author_url}
+                      href={safeUrl(photo.author_url)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-sm text-brave-orange hover:text-brave-orange-hover"

@@ -35,3 +35,31 @@ export function getImagePath(filename: string): string {
 export function formatNumber(num: number): string {
   return num.toLocaleString();
 }
+
+const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
+const DEFAULT_COLOR = '#1A1425';
+
+/**
+ * Sanitize a hex color value. Returns the color if it's a valid 6-digit hex,
+ * otherwise returns a safe default. Prevents CSS injection via style attrs.
+ */
+export function safeColor(color: string): string {
+  return HEX_COLOR_RE.test(color) ? color : DEFAULT_COLOR;
+}
+
+/**
+ * Sanitize a URL to only allow https:// scheme.
+ * Returns empty string for javascript:, data:, or other dangerous URIs.
+ */
+export function safeUrl(url: string): string {
+  if (!url) return '';
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+      return url;
+    }
+    return '';
+  } catch {
+    return '';
+  }
+}
