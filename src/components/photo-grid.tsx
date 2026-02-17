@@ -10,7 +10,7 @@ export function PhotoGrid({ backgrounds, featured }: PhotoGridProps) {
   if (backgrounds.length === 0) {
     return (
       <div className="py-20 text-center">
-        <p className="text-text-dim">No wallpapers found for this season.</p>
+        <p className="text-text-dim">No wallpapers found.</p>
       </div>
     );
   }

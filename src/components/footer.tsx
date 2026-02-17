@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { siteConfig } from '@/config/site';
 
 export function Footer() {
   return (
@@ -8,11 +7,11 @@ export function Footer() {
         <div className="grid gap-8 sm:grid-cols-3">
           <div>
             <h3 className="font-heading text-lg font-semibold text-text-primary">
-              Brave Backgrounds
+              Beautiful Backgrounds
             </h3>
             <p className="mt-2 text-sm text-text-dim">
-              An unofficial archive of Brave Browser&apos;s New Tab Page
-              photography wallpapers.
+              A curated gallery of stunning photography wallpapers from
+              browser New Tab Pages.
             </p>
           </div>
 
@@ -38,14 +37,12 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <a
-                  href={siteConfig.links.brave}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  href="/privacy"
                   className="text-sm text-text-dim transition-colors hover:text-text-primary"
                 >
-                  Brave Browser &darr;
-                </a>
+                  Privacy Policy
+                </Link>
               </li>
             </ul>
           </div>
@@ -63,7 +60,7 @@ export function Footer() {
         </div>
 
         <div className="mt-8 border-t border-border-subtle pt-6 text-center text-xs text-text-dim">
-          &copy; {new Date().getFullYear()} Brave Backgrounds
+          &copy; {new Date().getFullYear()} Beautiful Backgrounds
         </div>
       </div>
     </footer>

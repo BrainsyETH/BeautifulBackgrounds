@@ -7,6 +7,7 @@ import { useState } from 'react';
 const links = [
   { href: '/gallery', label: 'Gallery' },
   { href: '/about', label: 'About' },
+  { href: '/privacy', label: 'Privacy' },
 ];
 
 export function Nav() {
@@ -16,17 +17,12 @@ export function Nav() {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border-subtle bg-bg-primary/90 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            className="font-heading text-xl font-bold text-text-primary"
-          >
-            Brave Backgrounds
-          </Link>
-          <span className="rounded-full border border-brave-orange px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brave-orange">
-            Unofficial
-          </span>
-        </div>
+        <Link
+          href="/"
+          className="font-heading text-xl font-bold text-text-primary"
+        >
+          Beautiful Backgrounds
+        </Link>
 
         {/* Desktop links */}
         <div className="hidden items-center gap-6 sm:flex">
