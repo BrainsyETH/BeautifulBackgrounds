@@ -1,0 +1,91 @@
+name: Extract Brave NTP Backgrounds
+
+on:
+  schedule:
+    # Run every Monday at 06:00 UTC
+    - cron: '0 6 * * 1'
+  workflow_dispatch: # Allow manual trigger
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Brave Browser
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl
+          sudo curl -fsSLo /usr/share/keyrings/brave-browser-archive-keyring.gpg \
+            https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/brave-browser-archive-keyring.gpg] \
+            https://brave-browser-apt-release.s3.brave.com/ stable main" \
+            | sudo tee /etc/apt/sources.list.d/brave-browser-release.list
+          sudo apt-get update
+          sudo apt-get install -y brave-browser
+
+      - name: Launch Brave and wait for component download
+        run: |
+          # Create a temporary user data dir
+          export BRAVE_USER_DATA="$HOME/.config/BraveSoftware/Brave-Browser"
+          mkdir -p "$BRAVE_USER_DATA"
+
+          # Launch Brave headless to trigger component downloads
+          # The NTP Background Images component auto-downloads on first run
+          brave-browser \
+            --headless=new \
+            --disable-gpu \
+            --no-sandbox \
+            --disable-dev-shm-usage \
+            --user-data-dir="$BRAVE_USER_DATA" \
+            --dump-dom "brave://newtab" &
+
+          BRAVE_PID=$!
+
+          # Wait for component to download (check every 10s, up to 3 minutes)
+          echo "Waiting for NTP Background Images component to download..."
+          for i in $(seq 1 18); do
+            if find "$BRAVE_USER_DATA" -name "photo.json" -type f 2>/dev/null | grep -q .; then
+              echo "Found photo.json after $((i * 10)) seconds"
+              break
+            fi
+            echo "Attempt $i/18 — waiting 10s..."
+            sleep 10
+          done
+
+          # Kill Brave
+          kill $BRAVE_PID 2>/dev/null || true
+          sleep 2
+
+      - name: Run extraction script
+        run: bash scripts/extract-backgrounds.sh
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet data/backgrounds.json && \
+             [ -z "$(git ls-files --others --exclude-standard public/backgrounds/)" ]; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            echo "No new backgrounds found."
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            echo "New backgrounds detected!"
+          fi
+
+      - name: Commit and push changes
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/backgrounds.json public/backgrounds/
+          git commit -m "chore: update NTP backgrounds from Brave component
+
+          Automated extraction by GitHub Actions.
+          Ran on $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push
