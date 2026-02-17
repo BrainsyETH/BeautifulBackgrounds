@@ -31,21 +31,11 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="/analytics"
+                  href="/about"
                   className="text-sm text-text-dim transition-colors hover:text-text-primary"
                 >
-                  Analytics
+                  About
                 </Link>
-              </li>
-              <li>
-                <a
-                  href={siteConfig.links.duneDashboard}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-text-dim transition-colors hover:text-text-primary"
-                >
-                  Dune Dashboard &darr;
-                </a>
               </li>
               <li>
                 <a
@@ -73,15 +63,7 @@ export function Footer() {
         </div>
 
         <div className="mt-8 border-t border-border-subtle pt-6 text-center text-xs text-text-dim">
-          &copy; {new Date().getFullYear()} Brave Backgrounds. Built by{' '}
-          <a
-            href={siteConfig.links.duneDashboard}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-brave-orange hover:text-brave-orange-hover"
-          >
-            Brainsy
-          </a>
+          &copy; {new Date().getFullYear()} Brave Backgrounds
         </div>
       </div>
     </footer>

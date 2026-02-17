@@ -27,18 +27,12 @@ export function Hero() {
         </span>
       </div>
 
-      <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+      <div className="mt-8">
         <Link
           href="/gallery"
           className="rounded-lg bg-brave-orange px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-brave-orange-hover"
         >
           Browse Gallery
-        </Link>
-        <Link
-          href="/analytics"
-          className="rounded-lg border border-border-subtle bg-bg-card px-6 py-3 text-sm font-semibold text-text-primary transition-colors hover:border-brave-orange"
-        >
-          View Analytics
         </Link>
       </div>
     </section>

@@ -103,25 +103,6 @@ export default function AboutPage() {
           </div>
         </div>
 
-        <div>
-          <h2 className="font-heading text-xl font-semibold text-text-primary">
-            Web3 Analytics
-          </h2>
-          <p className="mt-3 leading-relaxed">
-            In addition to the photography archive, this site features on-chain
-            analytics from the Brave/BAT ecosystem, powered by data from{' '}
-            <a
-              href={siteConfig.links.duneDashboard}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-brave-orange hover:text-brave-orange-hover"
-            >
-              Dune Analytics
-            </a>
-            . Charts are rendered from live API data, updated hourly.
-          </p>
-        </div>
-
         <div className="rounded-xl border border-border-subtle bg-bg-card p-6">
           <h2 className="font-heading text-lg font-semibold text-text-primary">
             Disclaimer
@@ -130,8 +111,8 @@ export default function AboutPage() {
             This site is <strong className="text-brave-orange">unofficial</strong> and
             is not affiliated with or endorsed by Brave Software, Inc. All
             photographs are the property of their respective photographers and
-            are used according to their individual licenses. Brave, the Brave
-            logo, and BAT are trademarks of Brave Software, Inc.
+            are used according to their individual licenses. Brave and the Brave
+            logo are trademarks of Brave Software, Inc.
           </p>
         </div>
 
@@ -151,14 +132,6 @@ export default function AboutPage() {
             className="rounded-lg border border-border-subtle bg-bg-card px-4 py-2 text-sm text-text-primary transition-colors hover:border-brave-orange"
           >
             brave-core Repo &rarr;
-          </a>
-          <a
-            href={siteConfig.links.duneDashboard}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-lg border border-border-subtle bg-bg-card px-4 py-2 text-sm text-text-primary transition-colors hover:border-brave-orange"
-          >
-            Dune Dashboard &rarr;
           </a>
         </div>
       </div>
