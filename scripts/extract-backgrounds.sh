@@ -15,7 +15,21 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BACKGROUNDS_DIR="$REPO_ROOT/public/backgrounds"
 DATA_FILE="$REPO_ROOT/data/backgrounds.json"
-BRAVE_USER_DATA="${BRAVE_USER_DATA:-$HOME/.config/BraveSoftware/Brave-Browser}"
+# Detect OS and set default Brave data path
+if [ -z "${BRAVE_USER_DATA:-}" ]; then
+  case "$(uname -s)" in
+    Darwin)
+      BRAVE_USER_DATA="$HOME/Library/Application Support/BraveSoftware/Brave-Browser"
+      ;;
+    Linux)
+      BRAVE_USER_DATA="$HOME/.config/BraveSoftware/Brave-Browser"
+      ;;
+    *)
+      echo "ERROR: Unsupported OS. Set BRAVE_USER_DATA manually."
+      exit 1
+      ;;
+  esac
+fi
 
 echo "=== Brave NTP Background Extractor ==="
 echo "Repo root: $REPO_ROOT"
