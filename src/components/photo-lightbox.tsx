@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback } from 'react';
 import Image from 'next/image';
-import { adjustBrightness, getImagePath } from '@/lib/utils';
+import { adjustBrightness, getImagePath, safeColor } from '@/lib/utils';
 import type { Background } from '@/types';
 
 interface PhotoLightboxProps {
@@ -97,7 +97,7 @@ export function PhotoLightbox({
           <div
             className="flex h-[50vh] w-[80vw] max-w-4xl items-center justify-center rounded-lg"
             style={{
-              background: `linear-gradient(135deg, ${background.dominant_color}, ${adjustBrightness(background.dominant_color, 40)})`,
+              background: `linear-gradient(135deg, ${safeColor(background.dominant_color)}, ${adjustBrightness(safeColor(background.dominant_color), 40)})`,
             }}
           >
             <span className="text-sm uppercase tracking-[0.2em] text-white/30">
