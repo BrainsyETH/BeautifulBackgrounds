@@ -84,9 +84,7 @@ export default function PrivacyPage() {
 
         <div className="rounded-xl border border-border-subtle bg-bg-card p-6">
           <p className="text-sm leading-relaxed text-text-dim">
-            <strong className="text-text-primary">In short:</strong> We
-            don&apos;t track you, we don&apos;t collect your data, and we
-            aren&apos;t affiliated with Brave. This is a simple gallery site
+            <strong className="text-text-primary">In short:</strong> This is a simple gallery site
             that respects your privacy.
           </p>
         </div>
