@@ -88,29 +88,44 @@ const existingFilenames = new Set(existing.map(b => b.filename));
 // Process each entry from photo.json
 const photos = Array.isArray(photoJson) ? photoJson : (photoJson.images || photoJson.backgrounds || []);
 let newCount = 0;
+let copyCount = 0;
 let nextOrder = existing.length > 0
   ? Math.max(...existing.map(b => b.sort_order)) + 1
   : 1;
+
+// Build a lookup of existing entries by filename for updates
+const existingByFilename = {};
+for (const bg of existing) {
+  existingByFilename[bg.filename] = bg;
+}
 
 for (const photo of photos) {
   // Normalize field names — photo.json may use different key names
   const filename = photo.wallpaperImageUrl || photo.filename || photo.image || '';
   if (!filename) continue;
 
-  // Check if we already have this image
-  if (existingFilenames.has(filename)) {
-    console.log('  [skip] ' + filename + ' (already exists)');
-    continue;
+  // Always try to copy the image file if it's missing from public/backgrounds/
+  const destPath = path.join(bgDir, filename);
+  if (!fs.existsSync(destPath)) {
+    const srcPath = path.join(componentDir, filename);
+    if (fs.existsSync(srcPath)) {
+      fs.copyFileSync(srcPath, destPath);
+      console.log('  [copy] ' + filename);
+      copyCount++;
+    } else {
+      console.log('  [warn] Image not found: ' + srcPath);
+    }
   }
 
-  // Copy image file if it exists
-  const srcPath = path.join(componentDir, filename);
-  if (fs.existsSync(srcPath)) {
-    const destPath = path.join(bgDir, filename);
-    fs.copyFileSync(srcPath, destPath);
-    console.log('  [copy] ' + filename);
-  } else {
-    console.log('  [warn] Image not found: ' + srcPath);
+  // Update image_url for existing entries if the file now exists
+  if (existingByFilename[filename]) {
+    if (fs.existsSync(destPath) && !existingByFilename[filename].image_url) {
+      existingByFilename[filename].image_url = '/backgrounds/' + filename;
+      console.log('  [update] ' + filename + ' → image_url set');
+    } else if (existingByFilename[filename].image_url) {
+      console.log('  [ok] ' + filename);
+    }
+    continue;
   }
 
   // Generate slug from filename
@@ -135,7 +150,7 @@ for (const photo of photos) {
     license: license,
     original_url: originalUrl,
     description: author + ' photography',
-    image_url: '/backgrounds/' + filename,
+    image_url: fs.existsSync(destPath) ? '/backgrounds/' + filename : null,
     thumbnail_url: null,
     width: null,
     height: null,
@@ -145,7 +160,7 @@ for (const photo of photos) {
   };
 
   existing.push(entry);
-  existingFilenames.add(filename);
+  existingByFilename[filename] = entry;
   newCount++;
 }
 
@@ -156,18 +171,13 @@ for (const bg of existing) {
     bg.is_current = false;
   } else {
     bg.is_current = true;
-    // Update image_url if we now have the file
-    const imgPath = path.join(bgDir, bg.filename);
-    if (fs.existsSync(imgPath) && !bg.image_url) {
-      bg.image_url = '/backgrounds/' + bg.filename;
-    }
   }
 }
 
 // Write updated data
 fs.writeFileSync(dataFile, JSON.stringify(existing, null, 2) + '\n');
 console.log('');
-console.log('Done! Added ' + newCount + ' new background(s). Total: ' + existing.length);
+console.log('Done! Added ' + newCount + ' new background(s), copied ' + copyCount + ' image(s). Total: ' + existing.length);
 "
 
 echo ""
