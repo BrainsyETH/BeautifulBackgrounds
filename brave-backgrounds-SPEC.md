@@ -1,20 +1,17 @@
 # Brave Backgrounds — Technical Specification
 
-**Project:** Unofficial Brave NTP Photography Gallery & Web3 Analytics
-**Stack:** Next.js 14 (App Router), TypeScript, Tailwind CSS, Recharts
+**Project:** Unofficial Brave NTP Photography Gallery
+**Stack:** Next.js 14 (App Router), TypeScript, Tailwind CSS
 **Data:** Static JSON + automated GitHub Actions pipeline
 **Deploy:** Vercel
 **Author:** Evan (Brave Support / UX Designer)
-**Status:** v2 — Revised architecture (no external database, fully automated)
+**Status:** v3 — Backgrounds-focused (no external database)
 
 ---
 
 ## 1. Project Overview
 
-An unofficial site that:
-
-1. Archives the photography wallpapers that ship on Brave Browser's New Tab Page (NTP)
-2. Renders custom Web3 analytics charts from Dune Analytics API data (`https://dune.com/brainsy/brave-web3`)
+An unofficial site that archives the photography wallpapers that ship on Brave Browser's New Tab Page (NTP).
 
 The NTP photos are **not** ads — they're curated landscape/nature photography delivered via Brave's "NTP Background Images" browser component. This site is independent and not affiliated with Brave Software, Inc.
 
@@ -25,15 +22,12 @@ The NTP photos are **not** ads — they're curated landscape/nature photography 
 | Database | **None** — static JSON file (`data/backgrounds.json`) in the repo |
 | Image storage | **In-repo** — `public/backgrounds/` committed by GitHub Action |
 | Image pipeline | **Automated** — weekly GitHub Action installs Brave, extracts images |
-| Analytics | **Custom charts** — Dune API → Recharts (no iframes) |
 | Data fetching | **Static imports** — JSON imported at build time |
 | Deploy | **Vercel** — auto-deploys on push |
 
 ---
 
-## 2. Data Sources
-
-### 2.1 NTP Background Images
+## 2. Data Source — NTP Background Images
 
 Brave ships rotating wallpapers via a browser component called "Brave NTP background images component." These are NOT accessible via a public API or URL. The images live inside the browser's local component storage and are referenced internally via `brave://background-wallpaper/` URLs (not fetchable by web pages).
 
@@ -67,31 +61,6 @@ interface BraveBackground {
 | 2020/2021 | Alex Plesovskich, Dylan Malval, Zane Lee, Will Christiansen |
 | Fall 2021 | Dylan Malval, Nick Sorocka, Spencer Moore, Corwin Prescott (×2), David Neeleman |
 | Spring 2024 | Ric Matkowski, Lawrence Braun, Pok Rie, Adrien Olichon, Luca Bravo, Ryan Stefan, Colton Everill |
-
-### 2.2 Dune Analytics API
-
-Dashboard URL: `https://dune.com/brainsy/brave-web3`
-
-Charts are rendered using the **Dune API** (not iframes) with custom Recharts components for full styling control.
-
-**Integration pattern:**
-
-```typescript
-// src/config/dune-queries.ts — add query IDs here
-export const duneQueries: DuneQueryConfig[] = [
-  {
-    id: 'bat-overview',
-    title: 'BAT Token Overview',
-    queryId: 123456,          // from dune.com/queries/123456
-    visualizationType: 'area',
-    fullWidth: true,
-  },
-];
-```
-
-API endpoint: `https://api.dune.com/api/v1/query/{queryId}/results`
-Auth: `X-Dune-API-Key` header
-Caching: Results cached for 1 hour via Next.js `revalidate`
 
 ---
 
@@ -178,21 +147,15 @@ brave-backgrounds/
 │   ├── app/
 │   │   ├── layout.tsx                 # Root layout with nav, footer, fonts
 │   │   ├── globals.css                # Tailwind + base styles
-│   │   ├── page.tsx                   # Home — hero, stats, featured, analytics preview
+│   │   ├── page.tsx                   # Home — hero, stats, featured
 │   │   ├── gallery/
 │   │   │   ├── page.tsx               # Gallery with season filtering
 │   │   │   └── gallery-content.tsx    # Client-side filter + lightbox state
 │   │   ├── photo/
 │   │   │   └── [slug]/
 │   │   │       └── page.tsx           # Photo detail with metadata sidebar
-│   │   ├── analytics/
-│   │   │   └── page.tsx               # Dune charts grid
-│   │   ├── about/
-│   │   │   └── page.tsx               # About, data sources, disclaimer
-│   │   └── api/
-│   │       └── dune/
-│   │           └── [queryId]/
-│   │               └── route.ts       # Dune API proxy
+│   │   └── about/
+│   │       └── page.tsx               # About, data sources, disclaimer
 │   ├── components/
 │   │   ├── nav.tsx                    # Fixed nav with mobile menu
 │   │   ├── footer.tsx                 # Footer with disclaimer
@@ -201,17 +164,12 @@ brave-backgrounds/
 │   │   ├── photo-card.tsx             # Gallery card with hover overlay
 │   │   ├── photo-grid.tsx             # Responsive grid container
 │   │   ├── photo-lightbox.tsx         # Full-screen image viewer with keyboard nav
-│   │   ├── season-filter.tsx          # Filter pills (URL-param based)
-│   │   ├── dune-chart.tsx             # Recharts wrapper (bar, line, area, pie, table)
-│   │   ├── dune-chart-card.tsx        # Chart card with title + badge
-│   │   └── dune-grid.tsx              # Grid layout for analytics cards
+│   │   └── season-filter.tsx          # Filter pills (URL-param based)
 │   ├── lib/
 │   │   ├── backgrounds.ts            # Query functions over JSON data
-│   │   ├── dune.ts                    # Dune API client + data formatting
 │   │   └── utils.ts                   # Color adjustment, slugify, etc.
 │   ├── config/
-│   │   ├── site.ts                    # Site metadata, URLs
-│   │   └── dune-queries.ts            # Dune query configurations
+│   │   └── site.ts                    # Site metadata, URLs
 │   └── types/
 │       └── index.ts                   # TypeScript interfaces
 ├── tailwind.config.ts
@@ -230,8 +188,7 @@ brave-backgrounds/
 - Hero section with project title, tagline, and "Unofficial" badge
 - Stats bar: total wallpapers, photographers, seasons, "since 2019"
 - Featured photos: current NTP rotation in a grid (links to `/gallery`)
-- Analytics preview: CTA to configure Dune queries (links to `/analytics`)
-- About blurb
+- About blurb explaining what the site is
 
 ### 6.2 Gallery (`/gallery`)
 
@@ -253,26 +210,12 @@ brave-backgrounds/
 - Back to gallery link
 - Static generation via `generateStaticParams`
 
-### 6.4 Analytics (`/analytics`)
-
-- Grid of custom Recharts charts, configured via `src/config/dune-queries.ts`
-- Each chart in a card with title, description, "Dune Analytics" badge
-- Supports: bar, line, area, pie, and table visualizations
-- Empty state: instructions to configure queries
-- Link to full Dune dashboard
-
-### 6.5 About (`/about`)
+### 6.4 About (`/about`)
 
 - What NTP backgrounds are
 - How data is sourced (component extraction, brave-core repo, weekly automation)
 - Season links to filtered gallery
 - Disclaimer: unofficial, not affiliated with Brave Software
-
-### 6.6 API Route (`/api/dune/[queryId]`)
-
-- Proxy to Dune API with server-side API key
-- Returns formatted data + column metadata
-- Error handling for missing key or failed fetches
 
 ---
 
@@ -322,20 +265,13 @@ brave-backgrounds/
 - If no `image_url`: gradient placeholder using `dominant_color`
 - Click navigates to `/photo/[slug]`
 
-### 8.2 `<DuneChart />`
-
-- Recharts wrapper supporting bar, line, area, pie, and table types
-- Dark-themed: grid lines `#2E2840`, text `#6B6478`, accent `#FB542B`
-- Auto-detects X axis (first column) and data series (remaining columns)
-- Chart colors: `#FB542B`, `#FF6B42`, `#9B93A8`, `#6B6478`, `#F0ECF5`
-
-### 8.3 `<SeasonFilter />`
+### 8.2 `<SeasonFilter />`
 
 - Horizontal pill buttons, scrollable on mobile
 - Active state: filled `--brave-orange`
 - Updates URL search params for shareable filters
 
-### 8.4 `<PhotoLightbox />`
+### 8.3 `<PhotoLightbox />`
 
 - Full-screen overlay, `z-index: 200`
 - Dark backdrop with blur
@@ -349,10 +285,7 @@ brave-backgrounds/
 ```env
 # .env.local
 NEXT_PUBLIC_SITE_URL=https://brave-backgrounds.vercel.app
-DUNE_API_KEY=your-dune-api-key          # Server-side only
 ```
-
-No Supabase variables needed.
 
 ---
 
@@ -363,8 +296,7 @@ No Supabase variables needed.
   "dependencies": {
     "next": "^14",
     "react": "^18",
-    "react-dom": "^18",
-    "recharts": "^2.12"
+    "react-dom": "^18"
   },
   "devDependencies": {
     "typescript": "^5",
@@ -400,7 +332,7 @@ Vercel settings:
 - Framework: Next.js
 - Build command: `next build`
 - Output directory: `.next`
-- Environment variables: `NEXT_PUBLIC_SITE_URL`, `DUNE_API_KEY`
+- Environment variables: `NEXT_PUBLIC_SITE_URL`
 
 ---
 
@@ -421,5 +353,3 @@ Visible on every page:
 - **Photographer profiles** — Dedicated pages per photographer with all contributions
 - **RSS feed** — Notify followers when new seasonal images are added
 - **Search** — Full-text search across photographer names and descriptions
-- **NTP ad creatives section** — Pull from public ads catalog for New Tab Takeover sponsored images
-- **Dune API caching layer** — Persist query results to avoid rate limits
