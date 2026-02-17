@@ -19,7 +19,7 @@ export default function PrivacyPage() {
           </h2>
           <p className="mt-3 leading-relaxed">
             Beautiful Backgrounds is an unofficial project. It is
-            not affiliated with, endorsed by Brave Software, Inc. or the Brave Browser. The name
+            not endorsed by Brave Software, Inc. or the Brave Browser. The name
             &ldquo;Brave&rdquo; and any related trademarks are the property of
             Brave Software, Inc.
           </p>
