@@ -23,7 +23,7 @@ export async function generateMetadata({
 
   return {
     title: `${photo.author} — ${photo.description}`,
-    description: `${photo.description} | NTP wallpaper from ${photo.season} by ${photo.author}`,
+    description: `${photo.description} | Wallpaper by ${photo.author}`,
     openGraph: {
       images: photo.image_url
         ? [getImagePath(photo.filename)]
@@ -114,18 +114,6 @@ export default async function PhotoPage({ params }: PhotoPageProps) {
                   </dd>
                 </div>
               )}
-
-              <div>
-                <dt className="text-xs text-text-dim">Season</dt>
-                <dd>
-                  <Link
-                    href={`/gallery?season=${encodeURIComponent(photo.season)}`}
-                    className="text-sm text-text-primary hover:text-brave-orange"
-                  >
-                    {photo.season}
-                  </Link>
-                </dd>
-              </div>
 
               <div>
                 <dt className="text-xs text-text-dim">License</dt>

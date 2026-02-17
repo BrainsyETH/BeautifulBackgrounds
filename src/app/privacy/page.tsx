@@ -67,8 +67,16 @@ export default function PrivacyPage() {
             Brave Browser&apos;s New Tab Page component. All images are the
             property of their respective photographers and are used under their
             individual licenses. If you are a
-            photographer and would like your work removed, please open an issue
-            on our GitHub repository.
+            photographer and would like your work removed, please{' '}
+            <a
+              href="https://github.com/BrainsyETH/BeautifulBackgrounds/issues"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brave-orange hover:text-brave-orange-hover"
+            >
+              open an issue on our GitHub repository
+            </a>
+            .
           </p>
         </div>
 

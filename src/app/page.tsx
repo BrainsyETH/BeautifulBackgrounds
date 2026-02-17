@@ -10,7 +10,7 @@ export default function HomePage() {
       <Hero />
 
       <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
-        <PhotoGrid backgrounds={backgrounds} />
+        <PhotoGrid backgrounds={backgrounds} varied />
       </section>
     </>
   );
