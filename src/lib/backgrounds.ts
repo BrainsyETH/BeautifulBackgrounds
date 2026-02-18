@@ -31,6 +31,16 @@ export function getRelatedBackgrounds(
   return [...sameAuthor, ...sameSeason].slice(0, limit);
 }
 
+export function getAdjacentBackgrounds(slug: string): { prev: string | null; next: string | null } {
+  const all = getAllBackgrounds().filter((bg) => bg.image_url !== null);
+  const idx = all.findIndex((bg) => bg.slug === slug);
+  if (idx === -1) return { prev: null, next: null };
+  return {
+    prev: idx > 0 ? all[idx - 1].slug : null,
+    next: idx < all.length - 1 ? all[idx + 1].slug : null,
+  };
+}
+
 export function getStats() {
   const withImages = backgrounds.filter((bg) => bg.image_url !== null);
   const totalWallpapers = withImages.length;

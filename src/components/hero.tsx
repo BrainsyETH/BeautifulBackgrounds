@@ -5,8 +5,16 @@ export function Hero() {
         Beautiful Backgrounds
       </h1>
       <p className="mt-2 max-w-lg text-sm text-text-secondary">
-        A curated gallery of the stunning photography wallpapers from
-        Brave Browser&apos;s New Tab Page
+        A curated gallery of the stunning photography wallpapers from{' '}
+        <a
+          href="https://brave.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-brave-orange hover:text-brave-orange-hover"
+        >
+          Brave Browser
+        </a>
+        &apos;s New Tab Page
       </p>
     </section>
   );

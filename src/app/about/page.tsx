@@ -23,7 +23,16 @@ export default function AboutPage() {
             What is Beautiful Backgrounds?
           </h2>
           <p className="mt-3 leading-relaxed">
-            Every time you open a new tab in Brave Browser, you&apos;re greeted
+            Every time you open a new tab in{' '}
+            <a
+              href="https://brave.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brave-orange hover:text-brave-orange-hover"
+            >
+              Brave Browser
+            </a>
+            , you&apos;re greeted
             with a stunning landscape or nature photograph. These are curated images delivered through the
             browser&apos;s background images component, rotating regularly with
             fresh photography from talented photographers around the world.
@@ -39,8 +48,16 @@ export default function AboutPage() {
             How is the data sourced?
           </h2>
           <p className="mt-3 leading-relaxed">
-            The wallpaper images and metadata are extracted from Brave
-            Browser&apos;s NTP Background Images component, which contains a
+            The wallpaper images and metadata are extracted from{' '}
+            <a
+              href="https://brave.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brave-orange hover:text-brave-orange-hover"
+            >
+              Brave Browser
+            </a>
+            &apos;s NTP Background Images component, which contains a
             metadata file alongside the image files themselves. An automated
             process checks for new wallpapers and updates this gallery.
           </p>
@@ -75,10 +92,18 @@ export default function AboutPage() {
             Unofficial Project
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-text-dim">
-            This site is an unofficial project. It is not
-          endorsed by, or in any way officially connected to
-            Brave Software, Inc. The name &ldquo;Brave&rdquo; and any related
-            trademarks are the property of Brave Software, Inc. All photographs
+            This site is an unofficial project. It is not endorsed by, or in
+            any way officially connected to{' '}
+            <a
+              href="https://brave.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brave-orange hover:text-brave-orange-hover"
+            >
+              Brave Software, Inc
+            </a>
+            . The name &ldquo;Brave&rdquo; and any related trademarks are the
+            property of Brave Software, Inc. All photographs
             are the property of their respective photographers and are used
             according to their individual licenses.
           </p>

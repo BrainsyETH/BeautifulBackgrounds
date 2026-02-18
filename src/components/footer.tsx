@@ -52,8 +52,16 @@ export function Footer() {
               Legal
             </h4>
             <p className="mt-3 text-xs leading-relaxed text-text-dim">
-              This site is not affiliated with or endorsed by Brave Software,
-              Inc. All photographs are the property of their respective
+              This site is not affiliated with or endorsed by{' '}
+              <a
+                href="https://brave.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-text-secondary hover:text-text-primary"
+              >
+                Brave Software, Inc
+              </a>
+              . All photographs are the property of their respective
               photographers and are used according to their individual licenses.
             </p>
           </div>
