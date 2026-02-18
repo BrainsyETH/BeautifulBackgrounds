@@ -19,9 +19,26 @@ export default function PrivacyPage() {
           </h2>
           <p className="mt-3 leading-relaxed">
             Beautiful Backgrounds is an unofficial project. It is
-            not endorsed by Brave Software, Inc. or the Brave Browser. The name
-            &ldquo;Brave&rdquo; and any related trademarks are the property of
-            Brave Software, Inc.
+            not endorsed by{' '}
+            <a
+              href="https://brave.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brave-orange hover:text-brave-orange-hover"
+            >
+              Brave Software, Inc.
+            </a>{' '}
+            or the{' '}
+            <a
+              href="https://brave.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brave-orange hover:text-brave-orange-hover"
+            >
+              Brave Browser
+            </a>
+            . The name &ldquo;Brave&rdquo; and any related trademarks are the
+            property of Brave Software, Inc.
           </p>
         </div>
 
@@ -63,8 +80,16 @@ export default function PrivacyPage() {
             Photography &amp; Licensing
           </h2>
           <p className="mt-3 leading-relaxed">
-            The photographs displayed on this site were originally sourced from
-            Brave Browser&apos;s New Tab Page component. All images are the
+            The photographs displayed on this site were originally sourced from{' '}
+            <a
+              href="https://brave.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brave-orange hover:text-brave-orange-hover"
+            >
+              Brave Browser
+            </a>
+            &apos;s New Tab Page component. All images are the
             property of their respective photographers and are used under their
             individual licenses. If you are a
             photographer and would like your work removed, please{' '}

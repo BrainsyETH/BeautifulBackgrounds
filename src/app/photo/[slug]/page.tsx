@@ -5,10 +5,12 @@ import { notFound } from 'next/navigation';
 import {
   getBackgroundBySlug,
   getRelatedBackgrounds,
+  getAdjacentBackgrounds,
   getAllBackgrounds,
 } from '@/lib/backgrounds';
 import { adjustBrightness, getImagePath, safeColor, safeUrl } from '@/lib/utils';
 import { PhotoGrid } from '@/components/photo-grid';
+import { PhotoNav } from '@/components/photo-nav';
 
 interface PhotoPageProps {
   params: Promise<{ slug: string }>;
@@ -43,6 +45,7 @@ export default async function PhotoPage({ params }: PhotoPageProps) {
   if (!photo) notFound();
 
   const related = getRelatedBackgrounds(slug, 4);
+  const { prev, next } = getAdjacentBackgrounds(slug);
   const hasImage = photo.image_url !== null;
   const imageSrc = hasImage ? getImagePath(photo.filename) : null;
 
@@ -72,6 +75,7 @@ export default async function PhotoPage({ params }: PhotoPageProps) {
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-bg-primary via-transparent to-transparent" />
+        <PhotoNav prevSlug={prev} nextSlug={next} />
       </div>
 
       {/* Content */}
