@@ -92,20 +92,9 @@ export default function AboutPage() {
             Unofficial Project
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-text-dim">
-            This site is an unofficial project. It is not endorsed by, or in
-            any way officially connected to{' '}
-            <a
-              href="https://brave.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-brave-orange hover:text-brave-orange-hover"
-            >
-              Brave Software, Inc
-            </a>
-            . The name &ldquo;Brave&rdquo; and any related trademarks are the
+          The name &ldquo;Brave&rdquo; and any related trademarks are the
             property of Brave Software, Inc. All photographs
-            are the property of their respective photographers and are used
-            according to their individual licenses.
+            are the property of their respective photographers.
           </p>
           <p className="mt-3 text-sm leading-relaxed text-text-dim">
             For more information, see our{' '}
