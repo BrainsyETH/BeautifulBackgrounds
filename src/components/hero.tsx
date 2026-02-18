@@ -14,7 +14,7 @@ export function Hero() {
         >
           Brave Browser
         </a>
-        &apos;s New Tab Page
+        &apos;s New Tab Page. This is an unofficial project.
       </p>
     </section>
   );
