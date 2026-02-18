@@ -6,24 +6,31 @@ import type { Background } from '@/types';
 interface PhotoCardProps {
   background: Background;
   featured?: boolean;
+  variant?: 'wide' | 'tall';
 }
 
-export function PhotoCard({ background, featured }: PhotoCardProps) {
+export function PhotoCard({ background, featured, variant }: PhotoCardProps) {
   const hasImage = background.image_url !== null;
   const imageSrc = hasImage
     ? getImagePath(background.filename)
     : null;
 
+  const spanClass = variant === 'wide'
+    ? 'sm:col-span-2'
+    : variant === 'tall'
+      ? 'row-span-2'
+      : featured
+        ? 'sm:col-span-2'
+        : '';
+
   return (
     <Link
       href={`/photo/${background.slug}`}
-      className={`group relative block overflow-hidden rounded-xl border border-border-subtle bg-bg-card transition-all hover:-translate-y-0.5 hover:border-brave-orange/50 ${
-        featured ? 'sm:col-span-2' : ''
-      }`}
+      className={`group relative block overflow-hidden rounded-xl border border-border-subtle bg-bg-card transition-all hover:-translate-y-0.5 hover:border-brave-orange/50 ${spanClass}`}
     >
       <div
-        className={`relative w-full ${
-          featured ? 'aspect-[21/9]' : 'aspect-[16/10]'
+        className={`relative h-full w-full ${
+          variant ? '' : featured ? 'aspect-[21/9]' : 'aspect-[16/10]'
         }`}
       >
         {imageSrc ? (

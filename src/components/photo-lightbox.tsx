@@ -112,7 +112,7 @@ export function PhotoLightbox({
             {background.author}
           </p>
           <p className="mt-1 text-sm text-white/60">
-            {background.description} &middot; {background.season}
+            {background.description}
           </p>
         </div>
       </div>
