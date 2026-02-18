@@ -90,8 +90,7 @@ export default function PrivacyPage() {
               Brave Browser
             </a>
             &apos;s New Tab Page component. All images are the
-            property of their respective photographers and are used under their
-            individual licenses. If you are a
+            property of their respective photographers. If you are a
             photographer and would like your work removed, please{' '}
             <a
               href="https://github.com/BrainsyETH/BeautifulBackgrounds/issues"
